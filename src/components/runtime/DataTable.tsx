@@ -2,15 +2,38 @@
 import React, { useEffect, useState } from "react";
 import { DataField } from "@/types/schema";
 
+// FIX: the backend now applies a field's configured `default` when it's
+// omitted from a create request (see applyFieldDefaults in types/schema.ts).
+// The form itself still started every field blank, so a user filling out
+// the form by hand never saw the default they configured — it only ever
+// took effect for requests that omitted the field outright (e.g. a CSV row
+// with a missing column). This pre-fills the form with declared defaults
+// so the two paths behave consistently.
+function buildInitialFormState(dataSchema: DataField[]): Record<string, any> {
+  const state: Record<string, any> = {};
+  for (const f of dataSchema) {
+    if (f.default !== undefined) state[f.name] = f.default;
+  }
+  return state;
+}
+
 // Renders + drives full CRUD against the dynamically generated backend
 // (`/api/apps/[id]/records`) for whatever `dataSchema` an app declares.
 export const DataTable: React.FC<{ appId: string; dataSchema: DataField[] }> = ({ appId, dataSchema }) => {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [formState, setFormState] = useState<Record<string, any>>({});
+  const [formState, setFormState] = useState<Record<string, any>>(() => buildInitialFormState(dataSchema));
   const [importText, setImportText] = useState("");
   const [importResult, setImportResult] = useState<string | null>(null);
+
+  // dataSchema can change if the app's config is edited while this page is
+  // open; keep the form's defaults in sync rather than freezing them at
+  // first mount.
+  useEffect(() => {
+    setFormState(buildInitialFormState(dataSchema));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appId]);
 
   const load = async () => {
     setLoading(true);
@@ -41,7 +64,7 @@ export const DataTable: React.FC<{ appId: string; dataSchema: DataField[] }> = (
     });
     const json = await res.json();
     if (res.ok) {
-      setFormState({});
+      setFormState(buildInitialFormState(dataSchema));
       load();
     } else {
       setError(json.error || "Failed to create record");

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import Papa from "papaparse";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { AppConfigSchema, buildRecordSchema } from "@/types/schema";
+import { AppConfigSchema, buildRecordSchema, applyFieldDefaults } from "@/types/schema";
 import { runWorkflows } from "@/lib/workflows";
 
 // POST /api/apps/[id]/import — bulk CSV import feature (Track A "ANY THREE"
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const app = await prisma.customApp.findUnique({ where: { id: params.id } });
-  if (!app || app.ownerId !== (session.user as any).id) {
+  if (!app || app.ownerId !== session.user.id) {
     return NextResponse.json({ error: "App not found" }, { status: 404 });
   }
 
@@ -36,14 +36,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const rejected: { row: number; reason: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {
-    const validation = recordSchema.safeParse(rows[i]);
+    // FIX: same default-application gap as POST /records — a column the
+    // CSV simply doesn't have (but the field declares a `default` for)
+    // used to be rejected as a missing required value instead of falling
+    // back to the configured default.
+    const withDefaults = applyFieldDefaults(config.dataSchema, rows[i]);
+    const validation = recordSchema.safeParse(withDefaults);
     if (!validation.success) {
       rejected.push({ row: i + 1, reason: validation.error.issues.map((iss) => iss.message).join("; ") });
       continue;
     }
     const record = await prisma.appRecord.create({ data: { appId: params.id, data: validation.data } });
     created.push(record);
-    await runWorkflows(config.workflows, "ON_RECORD_CREATE", (session.user as any).id, validation.data);
+    await runWorkflows(config.workflows, "ON_RECORD_CREATE", session.user.id, validation.data);
   }
 
   return NextResponse.json({

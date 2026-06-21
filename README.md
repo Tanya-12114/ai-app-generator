@@ -23,6 +23,17 @@ JSON config ──► zod schema (AppConfigSchema) ──► two parallel output
                                                               create/update/delete
 ```
 
+**Important architectural note (read this before the review):** the two
+outputs above are intentionally *not* the same form engine. `sections` /
+`ComponentRegistry` is a presentational canvas — `INPUT`/`SELECT`/`CHECKBOX`/
+etc. render with no `value`/`onChange` wiring back to any record, by design.
+The actual functional create/edit/delete form is generated separately,
+straight from `dataSchema`, inside `DataTable.tsx` (controlled inputs, real
+submit handler, real validation). If asked "does the form in the JSON
+config actually save data," the honest answer is: only the `dataSchema`
+side does. Calling this out proactively rather than letting it look like an
+unwired feature.
+
 **Why JSON rows instead of generating real SQL tables per app?** Generating
 and migrating a literal Postgres table per user-defined schema is the
 "correct" long-term answer but is unsafe to do generically without a
@@ -32,11 +43,17 @@ practical guarantees (typed validation, required fields, enums) without
 running arbitrary DDL — a reasonable engineering trade-off for the scope of
 this assignment, called out explicitly here for the architecture review.
 
-**Resilience to malformed config**: `AppConfigSchema.safeParse` never throws;
-missing/invalid fields fall back to sane defaults. Unknown component types
-render a labeled "blocked" placeholder instead of crashing
-(`ComponentRegistry.tsx`), and `RuntimeErrorBoundary` catches any render-time
-exception so one broken section never takes the rest of the app down.
+**Resilience to malformed config**: `AppConfigSchema.safeParse` never throws.
+Each entry in `sections`, `dataSchema`, and `workflows` is validated
+*independently* (`lenientArray` in `types/schema.ts`) — a single section
+missing required fields, a dataSchema entry without a `name`, or a workflow
+with an invalid `trigger` is dropped on its own, with the rest of the config
+still saving. (Earlier drafts validated these as plain `z.array(...)`, where
+one bad entry anywhere rejected the *entire* config — fixed during review,
+see `REVIEW_NOTES.md`.) Unknown component types render a labeled "blocked"
+placeholder instead of crashing (`ComponentRegistry.tsx`), and
+`RuntimeErrorBoundary` catches any render-time exception so one broken
+section never takes the rest of the app down.
 
 ## Extra features implemented (3 of 7 required)
 
@@ -54,9 +71,15 @@ exception so one broken section never takes the rest of the app down.
 ## Auth
 
 NextAuth (Credentials provider, JWT sessions, bcrypt password hashing). Every
-`CustomApp` and `AppRecord` is scoped to `ownerId` — all API routes check
-session + ownership before reading/writing. `middleware.ts` protects
-`/dashboard`, `/builder`, `/apps/*` page routes.
+`CustomApp` row has an `ownerId`, and every API route checks session +
+ownership before reading/writing it. `AppRecord` doesn't carry its own
+`ownerId` column — it's scoped *indirectly*, by always looking up its parent
+`CustomApp.ownerId` first (see `loadApp`/`loadOwnedAppAndRecord` in the
+records routes) and 404'ing if it doesn't match the caller. Functionally
+equivalent for this single-owner-per-app model, but worth being precise
+about in review: it's "ownership via the parent," not a denormalized column
+on every record. `middleware.ts` protects `/dashboard`, `/builder`, `/apps/*`
+page routes.
 
 ## Setup
 

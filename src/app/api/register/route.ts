@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, user }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: "Registration failed", message: error.message }, { status: 500 });
+  } catch (error) {
+    // FIX: same info-disclosure issue as POST /api/apps — log internally,
+    // return a generic message to the client.
+    console.error("[POST /api/register] unexpected error:", error);
+    return NextResponse.json({ error: "Registration failed. Please try again." }, { status: 500 });
   }
 }

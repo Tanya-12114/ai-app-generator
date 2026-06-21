@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { AppConfigSchema, buildRecordSchema } from "@/types/schema";
+import { AppConfigSchema, buildRecordSchema, applyFieldDefaults } from "@/types/schema";
 import { runWorkflows } from "@/lib/workflows";
 
 async function loadApp(id: string, userId: string) {
@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const loaded = await loadApp(params.id, (session.user as any).id);
+  const loaded = await loadApp(params.id, session.user.id);
   if (!loaded) return NextResponse.json({ error: "App not found" }, { status: 404 });
 
   const records = await prisma.appRecord.findMany({
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const loaded = await loadApp(params.id, (session.user as any).id);
+  const loaded = await loadApp(params.id, session.user.id);
   if (!loaded) return NextResponse.json({ error: "App not found" }, { status: 404 });
 
   let rawBody: any;
@@ -50,7 +50,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const recordSchema = buildRecordSchema(loaded.config.dataSchema);
-  const validation = recordSchema.safeParse(rawBody ?? {});
+  // FIX: previously validated rawBody directly, so a required field with a
+  // configured `default` in the dataSchema still rejected a request that
+  // omitted it — the default was declared but never applied. See
+  // applyFieldDefaults() in types/schema.ts.
+  const withDefaults = applyFieldDefaults(loaded.config.dataSchema, rawBody ?? {});
+  const validation = recordSchema.safeParse(withDefaults);
 
   if (!validation.success) {
     return NextResponse.json(
@@ -63,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     data: { appId: params.id, data: validation.data },
   });
 
-  await runWorkflows(loaded.config.workflows, "ON_RECORD_CREATE", (session.user as any).id, validation.data);
+  await runWorkflows(loaded.config.workflows, "ON_RECORD_CREATE", session.user.id, validation.data);
 
   return NextResponse.json({ success: true, record }, { status: 201 });
 }

@@ -10,7 +10,7 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const notifications = await prisma.notification.findMany({
-    where: { userId: (session.user as any).id },
+    where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
     take: 25,
   });
@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const userId = (session.user as any).id;
+  const userId = session.user.id;
 
   if (body?.id) {
     await prisma.notification.updateMany({ where: { id: body.id, userId }, data: { read: true } });

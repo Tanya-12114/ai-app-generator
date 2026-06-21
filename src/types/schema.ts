@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+let idCounter = 0;
+/** Used as a zod `.default()` factory wherever an "id" field is structural
+ *  metadata (a React key, basically) rather than real content. A config
+ *  author forgetting to set one shouldn't cost them the whole section/rule —
+ *  see the FIX note on AppConfigSchema below for why this matters. */
+function genId(prefix: string): string {
+  idCounter += 1;
+  return `${prefix}_${Date.now().toString(36)}${idCounter}`;
+}
+
 /* ---------------------------------------------------------------------- */
 /* UI Component / Layout config — drives the rendering engine             */
 /* ---------------------------------------------------------------------- */
@@ -14,7 +24,11 @@ export const ComponentSchema = z.object({
 });
 
 export const SectionSchema = z.object({
-  id: z.string(),
+  // FIX: was `z.string()` (required, no default). A section missing "id"
+  // used to fail validation for that section entirely, which — combined
+  // with the old strict `z.array(SectionSchema)` — silently dropped the
+  // *entire app config*, not just the one section. See genId() above.
+  id: z.string().optional().default(() => genId("section")),
   title: z.string().optional().default("Section Panel"),
   layout: z.enum(["GRID", "STACK", "RESPONSIVE"]).optional().default("STACK"),
   components: z.array(z.any()).optional().default([]),
@@ -62,7 +76,8 @@ export const WorkflowActionSchema = z.object({
 });
 
 export const WorkflowSchema = z.object({
-  id: z.string(),
+  // FIX: same reasoning as SectionSchema.id above.
+  id: z.string().optional().default(() => genId("wf")),
   trigger: WorkflowTriggerEnum,
   actions: z.array(WorkflowActionSchema).optional().default([]),
 });
@@ -71,12 +86,44 @@ export const WorkflowSchema = z.object({
 /* Top level App config                                                   */
 /* ---------------------------------------------------------------------- */
 
+/**
+ * FIX — this is the actual bug, not just a defensive nicety:
+ *
+ * `z.array(SomeSchema)` fails its *entire* parse the moment ONE item in the
+ * array fails (e.g. a dataSchema entry missing "name", or a workflow with
+ * an invalid "trigger"). Since AppConfigSchema is one big object, that one
+ * bad array item bubbled up and rejected the WHOLE app config with a 400 —
+ * exactly the "missing fields / invalid values / inconsistent schemas"
+ * scenario the assignment says must be handled gracefully "without
+ * breaking." Before this fix, a single typo in one field definition meant
+ * the user couldn't save *any* of their other valid entities, sections, or
+ * workflows either.
+ *
+ * `lenientArray` parses each item independently and keeps only the ones
+ * that validate (with their own per-field defaults still applied) —
+ * matching how the assignment explicitly asks unknown *components* to be
+ * handled ("fail gracefully" instead of breaking the page), just applied
+ * one level up to schema/workflow entries too.
+ */
+function lenientArray<T extends z.ZodTypeAny>(itemSchema: T) {
+  return z
+    .array(z.any())
+    .optional()
+    .default([])
+    .transform((items) =>
+      items
+        .map((item) => itemSchema.safeParse(item))
+        .filter((r): r is z.SafeParseSuccess<z.infer<T>> => r.success)
+        .map((r) => r.data)
+    );
+}
+
 export const AppConfigSchema = z.object({
   appName: z.string().optional().default("AI Scaled Hub"),
   version: z.string().optional().default("1.0.0"),
-  sections: z.array(SectionSchema).optional().default([]),
-  dataSchema: z.array(DataFieldSchema).optional().default([]),
-  workflows: z.array(WorkflowSchema).optional().default([]),
+  sections: lenientArray(SectionSchema),
+  dataSchema: lenientArray(DataFieldSchema),
+  workflows: lenientArray(WorkflowSchema),
 });
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;
@@ -99,7 +146,16 @@ export function buildRecordSchema(fields: DataField[]) {
         base = z.coerce.number();
         break;
       case "BOOLEAN":
-        base = z.coerce.boolean();
+        // FIX: `z.coerce.boolean()` ran every value through JS's `Boolean()`,
+        // and `Boolean("false")` is `true` — any non-empty string coerced to
+        // true. A CSV/form value of "false" (or "0") for a BOOLEAN field was
+        // silently stored as `true`. Tested against the project's installed
+        // zod version before/after this fix; see PR notes / Loom for the repro.
+        base = z.preprocess((v) => {
+          if (typeof v === "string") return v.toLowerCase() === "true" || v === "1";
+          if (v === undefined || v === null || v === "") return false;
+          return v;
+        }, z.boolean());
         break;
       case "DATE":
         base = z.coerce.date();
@@ -112,6 +168,10 @@ export function buildRecordSchema(fields: DataField[]) {
         break;
       default:
         base = z.string();
+        // FIX: a required STRING field previously accepted "" (an empty
+        // string still satisfies z.string()), so "required" wasn't actually
+        // enforced for the most common field type.
+        if (f.required) base = (base as z.ZodString).min(1, `${f.name} is required`);
     }
 
     if (!f.required) {
@@ -121,7 +181,27 @@ export function buildRecordSchema(fields: DataField[]) {
     shape[f.name] = base;
   }
 
-  // Unknown/extra fields are stripped, not rejected — keeps the runtime
-  // resilient to schema drift instead of hard-failing on minor mismatches.
+  // Unknown/extra fields are passed through (kept), not rejected — keeps
+  // the runtime resilient to schema drift instead of hard-failing on minor
+  // mismatches, without silently discarding data the caller sent.
   return z.object(shape).passthrough();
+}
+
+/**
+ * FIX — `DataField.default` was declared in the schema (so config authors
+ * could write `{ "name": "status", "default": "OPEN" }`) but nothing ever
+ * read it: POST /records and the CSV importer validated the raw request
+ * body directly, so a required field with a configured default still
+ * rejected a request that omitted it. This merges declared defaults in
+ * before validation, exactly where both `record-service`-style call sites
+ * need it. Existing values in `payload` always win over the default.
+ */
+export function applyFieldDefaults(fields: DataField[], payload: Record<string, unknown>): Record<string, unknown> {
+  const merged = { ...payload };
+  for (const f of fields) {
+    if ((merged[f.name] === undefined || merged[f.name] === null) && f.default !== undefined) {
+      merged[f.name] = f.default;
+    }
+  }
+  return merged;
 }

@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const app = await getOwnedApp(params.id, (session.user as any).id);
+  const app = await getOwnedApp(params.id, session.user.id);
   if (!app) return NextResponse.json({ error: "App not found" }, { status: 404 });
 
   return NextResponse.json({ app });
@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const existing = await getOwnedApp(params.id, (session.user as any).id);
+  const existing = await getOwnedApp(params.id, session.user.id);
   if (!existing) return NextResponse.json({ error: "App not found" }, { status: 404 });
 
   const rawBody = await req.json();
@@ -45,7 +45,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const existing = await getOwnedApp(params.id, (session.user as any).id);
+  const existing = await getOwnedApp(params.id, session.user.id);
   if (!existing) return NextResponse.json({ error: "App not found" }, { status: 404 });
 
   await prisma.customApp.delete({ where: { id: params.id } });

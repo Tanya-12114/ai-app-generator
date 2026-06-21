@@ -24,7 +24,7 @@ export async function PUT(
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const loaded = await loadOwnedAppAndRecord(params.id, params.recordId, (session.user as any).id);
+  const loaded = await loadOwnedAppAndRecord(params.id, params.recordId, session.user.id);
   if (!loaded) return NextResponse.json({ error: "Record not found" }, { status: 404 });
 
   let rawBody: any;
@@ -48,7 +48,7 @@ export async function PUT(
     data: { data: { ...(loaded.record.data as object), ...validation.data } },
   });
 
-  await runWorkflows(loaded.config.workflows, "ON_RECORD_UPDATE", (session.user as any).id, updated.data as any);
+  await runWorkflows(loaded.config.workflows, "ON_RECORD_UPDATE", session.user.id, updated.data as any);
 
   return NextResponse.json({ success: true, record: updated });
 }
@@ -60,11 +60,11 @@ export async function DELETE(
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const loaded = await loadOwnedAppAndRecord(params.id, params.recordId, (session.user as any).id);
+  const loaded = await loadOwnedAppAndRecord(params.id, params.recordId, session.user.id);
   if (!loaded) return NextResponse.json({ error: "Record not found" }, { status: 404 });
 
   await prisma.appRecord.delete({ where: { id: params.recordId } });
-  await runWorkflows(loaded.config.workflows, "ON_RECORD_DELETE", (session.user as any).id, loaded.record.data as any);
+  await runWorkflows(loaded.config.workflows, "ON_RECORD_DELETE", session.user.id, loaded.record.data as any);
 
   return NextResponse.json({ success: true });
 }

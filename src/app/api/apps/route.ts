@@ -12,7 +12,7 @@ export async function GET() {
   }
 
   const apps = await prisma.customApp.findMany({
-    where: { ownerId: (session.user as any).id },
+    where: { ownerId: session.user.id },
     orderBy: { updatedAt: "desc" },
     include: { _count: { select: { records: true } } },
   });
@@ -46,19 +46,24 @@ export async function POST(req: NextRequest) {
         appName: validationResult.data.appName,
         version: validationResult.data.version,
         config: validationResult.data,
-        ownerId: (session.user as any).id,
+        ownerId: session.user.id,
       },
     });
 
     await prisma.notification.create({
       data: {
-        userId: (session.user as any).id,
+        userId: session.user.id,
         message: `App "${app.appName}" was generated successfully.`,
       },
     });
 
     return NextResponse.json({ success: true, app }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: "Runtime engine exception", message: error.message }, { status: 500 });
+  } catch (error) {
+    // FIX: was returning `error.message` straight to the client, which can
+    // leak internal details (stack-adjacent strings, DB error text, etc).
+    // Log the real error server-side; tell the client only that something
+    // went wrong.
+    console.error("[POST /api/apps] unexpected error:", error);
+    return NextResponse.json({ error: "Could not generate the app. Please try again." }, { status: 500 });
   }
 }
