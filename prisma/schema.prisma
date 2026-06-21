@@ -1,0 +1,60 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime       @default(now())
+  apps          CustomApp[]
+  notifications Notification[]
+}
+
+// One CustomApp = one "generated application" compiled from a JSON config.
+// `config` holds UI sections/components + `dataSchema` (field defs for the
+// dynamic CRUD engine) + `workflows` (automation rules triggered on record events).
+model CustomApp {
+  id        String      @id @default(uuid())
+  appName   String      @default("Dynamic AI Application")
+  version   String      @default("1.0.0")
+  config    Json
+  ownerId   String
+  owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  records   AppRecord[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([ownerId])
+}
+
+// Generic, schema-less row storage so the backend runtime can execute CRUD
+// against *any* dataSchema defined inside an app's config without generating
+// a real SQL table per app.
+model AppRecord {
+  id        String    @id @default(uuid())
+  appId     String
+  app       CustomApp @relation(fields: [appId], references: [id], onDelete: Cascade)
+  data      Json
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([appId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

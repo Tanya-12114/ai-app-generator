@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: ai_app_generator
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d ai_app_generator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-off job: applies Prisma migrations against the `postgres` service,
+  # then exits. The `app` service waits for this to finish successfully
+  # before starting — so nobody ever has to run `prisma migrate` by hand.
+  migrate:
+    build:
+      context: .
+      target: builder
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/ai_app_generator
+    command: npx prisma migrate deploy
+
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/ai_app_generator
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-only-change-this-in-production}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
