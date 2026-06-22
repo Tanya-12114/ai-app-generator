@@ -1,6 +1,7 @@
 # ---- deps ----------------------------------------------------------------
 FROM node:20-alpine AS deps
 WORKDIR /app
+RUN apk add --no-cache openssl
 
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
@@ -22,10 +23,11 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+RUN apk add --no-cache openssl
+
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
