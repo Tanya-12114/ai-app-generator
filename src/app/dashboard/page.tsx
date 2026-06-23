@@ -44,8 +44,8 @@ export default function DashboardPage() {
       <header className="border-b border-line bg-surface/90 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet to-violet-bright flex items-center justify-center shadow-card">
-              <span className="text-white font-bold text-xs">A</span>
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet to-violet- flex items-center justify-center shadow-card">
+              <span className="text-white font-bold text-xs">AI</span>
             </div>
             <span className="font-display font-semibold text-[15px] text-ink tracking-tight">AI App Generator</span>
           </div>
