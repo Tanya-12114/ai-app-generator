@@ -27,8 +27,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="text-center">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet to-violet-bright mx-auto flex items-center justify-center shadow-glow mb-4">
-            <span className="text-white font-bold text-sm">A</span>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet to-violet- mx-auto flex items-center justify-center shadow-glow mb-4">
+            <span className="text-white font-bold text-sm">AI</span>
           </div>
           <h1 className="text-xl font-bold text-ink">Sign in</h1>
           <p className="text-sm text-muted mt-1">to AI App Generator</p>
