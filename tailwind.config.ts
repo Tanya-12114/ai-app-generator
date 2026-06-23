@@ -14,28 +14,28 @@ const config: Config = {
       // amber=pending) instead of a single generic accent color.
       colors: {
         ink: {
-          DEFAULT: "#0E1116",
-          soft: "#161B22",
+          DEFAULT: "#15140F",
+          soft: "#211F18",
         },
-        paper: "#F7F5EF",
-        line: "#E7E2D5",
-        canvas: "#F7F5EF",
+        paper: "#F5F1E6",
+        line: "#E2DBC8",
+        canvas: "#F5F1E6",
         surface: "#FFFFFF",
-        raised: "#F1EEE5",
-        muted: "#8A8578",
+        raised: "#EFE9D9",
+        muted: "#6E6655",
         violet: {
-          DEFAULT: "#5B4FE5",
-          deep: "#4338CA",
-          soft: "#EEECFC",
-          bright: "#6D62F2",
+          DEFAULT: "#0F6B5C",
+          deep: "#0B4F44",
+          soft: "#DCEFE9",
+          bright: "#149E86",
         },
         mint: {
-          DEFAULT: "#1FAE73",
-          soft: "#E3F6ED",
+          DEFAULT: "#1E9E5C",
+          soft: "#E2F4E9",
         },
         amber: {
-          DEFAULT: "#D98C2B",
-          soft: "#FBEEDD",
+          DEFAULT: "#C2541F",
+          soft: "#FBE7DB",
         },
       },
       boxShadow: {
@@ -58,9 +58,9 @@ const config: Config = {
       },
       keyframes: {
         pulse_ring: {
-          "0%": { boxShadow: "0 0 0 0 rgba(31,174,115,0.45)" },
-          "70%": { boxShadow: "0 0 0 6px rgba(31,174,115,0)" },
-          "100%": { boxShadow: "0 0 0 0 rgba(31,174,115,0)" },
+          "0%": { boxShadow: "0 0 0 0 rgba(30,158,92,0.45)" },
+          "70%": { boxShadow: "0 0 0 6px rgba(30,158,92,0)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(30,158,92,0)" },
         },
       },
       animation: {

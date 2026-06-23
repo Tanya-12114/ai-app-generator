@@ -47,7 +47,7 @@ export default function DashboardPage() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet to-violet-bright flex items-center justify-center shadow-card">
               <span className="text-white font-bold text-xs">A</span>
             </div>
-            <span className="font-semibold text-ink tracking-tight">AI App Generator</span>
+            <span className="font-display font-semibold text-[15px] text-ink tracking-tight">AI App Generator</span>
           </div>
           <div className="flex items-center gap-3">
             <NotificationBell />
@@ -60,10 +60,10 @@ export default function DashboardPage() {
         {/* Welcome banner */}
         <section className="rounded-2xl border border-line bg-gradient-to-br from-violet-soft via-surface to-surface px-7 py-6 flex items-center justify-between gap-6">
           <div>
-            <h1 className="text-lg font-semibold text-ink">
+            <h1 className="text-2xl font-display font-semibold text-ink tracking-tight">
               Welcome back{session?.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""}
             </h1>
-            <p className="text-sm text-muted mt-1 max-w-lg">
+            <p className="text-[13px] text-muted mt-2 max-w-lg leading-relaxed">
               Define your app in JSON — fields, UI sections, workflow rules — and we turn it into a working application with its own live database. No boilerplate needed.
             </p>
           </div>
@@ -83,11 +83,11 @@ export default function DashboardPage() {
             { label: "Workflows", value: apps.reduce((s, a) => s + (a.config?.workflows?.length ?? 0), 0), icon: "⟳" },
             { label: "Status", value: "Online", icon: "●", green: true },
           ].map(stat => (
-            <div key={stat.label} className="rounded-xl border border-line bg-surface px-5 py-4">
-              <p className="text-xs text-muted flex items-center gap-1.5">
-                <span>{stat.icon}</span>{stat.label}
+            <div key={stat.label} className="rounded-xl border border-line bg-surface px-5 py-4 hover:border-violet/20 transition-colors">
+              <p className="text-[11px] font-semibold text-muted uppercase tracking-wide flex items-center gap-1.5">
+                <span className="text-violet/70">{stat.icon}</span>{stat.label}
               </p>
-              <p className={`text-2xl font-bold mt-1 ${stat.green ? "text-signal" : "text-ink"}`}>
+              <p className={`text-3xl font-display font-semibold mt-1.5 ${stat.green ? "text-mint" : "text-ink"}`}>
                 {stat.value}
               </p>
             </div>
@@ -97,8 +97,8 @@ export default function DashboardPage() {
         {/* Apps section */}
         <section className="space-y-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-ink">Your apps</h2>
-            <span className="text-xs text-muted">{apps.length} total</span>
+            <h2 className="text-base font-display font-semibold text-ink">Your apps</h2>
+            <span className="text-xs text-muted font-medium">{apps.length} total</span>
             <div className="flex-1" />
             {/* Search */}
             {apps.length > 2 && (
@@ -150,8 +150,8 @@ export default function DashboardPage() {
                       {app.appName?.charAt(0)?.toUpperCase() || "A"}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-ink text-sm truncate">{app.appName}</h3>
-                      <p className="text-xs text-muted mt-0.5">
+                      <h3 className="font-display font-semibold text-ink text-[15px] truncate">{app.appName}</h3>
+                      <p className="text-xs text-muted mt-0.5 font-medium">
                         v{app.version} · {app._count?.records ?? 0} record{app._count?.records !== 1 ? "s" : ""}
                       </p>
                     </div>
