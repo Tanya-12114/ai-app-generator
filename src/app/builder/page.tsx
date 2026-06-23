@@ -5,7 +5,7 @@ import BuilderContent from "./BuilderContent";
 export default function BuilderPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center text-gray-500 text-sm">
+      <div className="min-h-screen bg-paper flex items-center justify-center text-ink/40 text-sm font-mono">
         Loading builder...
       </div>
     }>

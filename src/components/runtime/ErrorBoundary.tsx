@@ -1,14 +1,11 @@
 "use client";
 import React from "react";
 
-// Catches render-time exceptions thrown by REGISTRY components (e.g. a
-// component type that "exists" but throws on bad props) so a single broken
-// widget can never take down the whole generated application.
 export class RuntimeErrorBoundary extends React.Component<
-  { children: React.ReactNode },
+  { children: React.ReactNode; label?: string },
   { hasError: boolean; message?: string }
 > {
-  constructor(props: { children: React.ReactNode }) {
+  constructor(props: { children: React.ReactNode; label?: string }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -18,16 +15,20 @@ export class RuntimeErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error) {
-    // eslint-disable-next-line no-console
-    console.error("AppRuntime caught a render error:", error);
+    console.error(`[RuntimeErrorBoundary${this.props.label ? `:${this.props.label}` : ""}]`, error);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-6 bg-red-50 border border-red-200 rounded-xl text-red-900 text-sm">
-          <p className="font-bold">⚠️ Runtime recovered from a render failure</p>
-          <p className="mt-1 text-xs font-mono text-red-700">{this.state.message}</p>
+        <div className="p-3 border border-dashed border-red-200 bg-red-50/50 rounded-lg text-xs my-1 flex items-start gap-2">
+          <span className="text-red-400 shrink-0 mt-0.5">⚠</span>
+          <div>
+            <p className="font-semibold text-red-700">
+              {this.props.label ? `"${this.props.label}" failed to render` : "Component render error"}
+            </p>
+            <p className="text-red-500 font-mono mt-0.5">{this.state.message}</p>
+          </div>
         </div>
       );
     }

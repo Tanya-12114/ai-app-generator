@@ -8,6 +8,8 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -22,64 +24,227 @@ export default function DashboardPage() {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this generated app and all its records?")) return;
     await fetch(`/api/apps/${id}`, { method: "DELETE" });
+    setDeleteConfirm(null);
     load();
   };
 
+  const filtered = apps.filter(a =>
+    a.appName?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalRecords = apps.reduce((sum, a) => sum + (a._count?.records ?? 0), 0);
+  const initial = (session?.user?.email || "?").charAt(0).toUpperCase();
+
+  const appToDelete = apps.find(a => a.id === deleteConfirm);
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-gray-900 text-white px-8 py-4 flex items-center justify-between">
-        <h1 className="font-black tracking-tight">AI App Generator</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-gray-400">{session?.user?.email}</span>
-          <NotificationBell />
-          <button onClick={() => signOut({ callbackUrl: "/login" })} className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition">
-            Sign out
-          </button>
+    <div className="min-h-screen bg-canvas">
+      {/* Header */}
+      <header className="border-b border-line bg-surface/90 backdrop-blur-sm sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet to-violet-bright flex items-center justify-center shadow-card">
+              <span className="text-white font-bold text-xs">A</span>
+            </div>
+            <span className="font-semibold text-ink tracking-tight">AI App Generator</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline text-xs text-muted">{session?.user?.email}</span>
+            <NotificationBell />
+            <div className="w-7 h-7 rounded-full bg-violet-soft text-violet-bright text-xs font-bold flex items-center justify-center border border-violet/20">
+              {initial}
+            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-xs px-3 py-1.5 text-muted hover:text-ink hover:bg-raised rounded-lg transition"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Your generated apps</h2>
-          <Link href="/builder" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">
-            + New App
+      <main className="max-w-6xl mx-auto px-6 py-8 space-y-7">
+        {/* Welcome banner */}
+        <section className="rounded-2xl border border-line bg-gradient-to-br from-violet-soft via-surface to-surface px-7 py-6 flex items-center justify-between gap-6">
+          <div>
+            <h1 className="text-lg font-semibold text-ink">
+              Welcome back{session?.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""}
+            </h1>
+            <p className="text-sm text-muted mt-1 max-w-lg">
+              Define your app in JSON — fields, UI sections, workflow rules — and we turn it into a working application with its own live database. No boilerplate needed.
+            </p>
+          </div>
+          <Link
+            href="/builder"
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 bg-violet hover:bg-violet-bright text-white text-sm font-semibold rounded-xl transition shadow-card whitespace-nowrap"
+          >
+            <span className="text-base leading-none">+</span> New App
           </Link>
-        </div>
+        </section>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => <div key={i} className="h-32 bg-white rounded-2xl animate-pulse border border-gray-200" />)}
-          </div>
-        ) : apps.length === 0 ? (
-          <div className="p-10 bg-white border border-dashed border-gray-300 rounded-2xl text-center text-gray-500 text-sm">
-            No apps yet. Click <strong>New App</strong> to compile your first JSON config into a running application.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {apps.map((app) => (
-              <div key={app.id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm">{app.appName}</h3>
-                  <p className="text-xs text-gray-400 font-mono">v{app.version} · {app._count?.records ?? 0} records</p>
-                </div>
-                <div className="flex gap-2">
-                  <Link href={`/apps/${app.id}`} className="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-100 transition">
-                    Open
-                  </Link>
-                  <Link href={`/builder?id=${app.id}`} className="text-xs px-3 py-1.5 bg-gray-50 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition">
-                    Edit Config
-                  </Link>
-                  <button onClick={() => handleDelete(app.id)} className="text-xs px-3 py-1.5 bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100 transition">
-                    Delete
-                  </button>
-                </div>
+        {/* Stats */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Apps", value: apps.length, icon: "⬡" },
+            { label: "Records", value: totalRecords, icon: "◈" },
+            { label: "Workflows", value: apps.reduce((s, a) => s + (a.config?.workflows?.length ?? 0), 0), icon: "⟳" },
+            { label: "Status", value: "Online", icon: "●", green: true },
+          ].map(stat => (
+            <div key={stat.label} className="rounded-xl border border-line bg-surface px-5 py-4">
+              <p className="text-xs text-muted flex items-center gap-1.5">
+                <span>{stat.icon}</span>{stat.label}
+              </p>
+              <p className={`text-2xl font-bold mt-1 ${stat.green ? "text-signal" : "text-ink"}`}>
+                {stat.value}
+              </p>
+            </div>
+          ))}
+        </section>
+
+        {/* Apps section */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-ink">Your apps</h2>
+            <span className="text-xs text-muted">{apps.length} total</span>
+            <div className="flex-1" />
+            {/* Search */}
+            {apps.length > 2 && (
+              <div className="relative">
+                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted" fill="none" viewBox="0 0 16 16">
+                  <path d="M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10zm4.243-1.757 2.757 2.757" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search apps..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-7 pr-3 py-1.5 text-xs border border-line rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-violet/20 w-44"
+                />
               </div>
-            ))}
+            )}
+            <Link href="/builder" className="sm:hidden px-3 py-1.5 bg-violet text-white text-xs font-semibold rounded-lg">
+              + New App
+            </Link>
           </div>
-        )}
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-40 bg-surface rounded-2xl animate-pulse border border-line" />
+              ))}
+            </div>
+          ) : apps.length === 0 ? (
+            <div className="py-16 border-2 border-dashed border-line rounded-2xl text-center">
+              <div className="w-12 h-12 rounded-2xl bg-violet-soft flex items-center justify-center mx-auto mb-4 text-xl">⬡</div>
+              <p className="text-sm font-medium text-ink">No apps yet</p>
+              <p className="text-xs text-muted mt-1 max-w-xs mx-auto">
+                Click <strong className="text-ink">New App</strong> to write your first JSON config and generate a working application.
+              </p>
+              <Link href="/builder" className="inline-flex items-center gap-2 mt-5 px-4 py-2.5 bg-violet hover:bg-violet-bright text-white text-sm font-semibold rounded-xl transition shadow-card">
+                + New App
+              </Link>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted border border-dashed border-line rounded-2xl">
+              No apps match &quot;{search}&quot;
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {filtered.map(app => (
+                <div key={app.id} className="group bg-surface border border-line rounded-2xl p-5 space-y-4 hover:border-violet/30 hover:shadow-hover transition">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-violet-soft flex items-center justify-center text-violet-bright font-bold text-sm shrink-0">
+                      {app.appName?.charAt(0)?.toUpperCase() || "A"}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-ink text-sm truncate">{app.appName}</h3>
+                      <p className="text-xs text-muted mt-0.5">
+                        v{app.version} · {app._count?.records ?? 0} record{app._count?.records !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Meta tags */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {(app.config?.dataSchema?.length > 0) && (
+                      <span className="px-1.5 py-0.5 bg-raised text-muted rounded text-[10px] font-medium">
+                        {app.config.dataSchema.length} field{app.config.dataSchema.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {(app.config?.workflows?.length > 0) && (
+                      <span className="px-1.5 py-0.5 bg-raised text-muted rounded text-[10px] font-medium">
+                        {app.config.workflows.length} workflow{app.config.workflows.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {(app.config?.sections?.length > 0) && (
+                      <span className="px-1.5 py-0.5 bg-raised text-muted rounded text-[10px] font-medium">
+                        {app.config.sections.length} section{app.config.sections.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <Link
+                      href={`/apps/${app.id}`}
+                      className="flex-1 text-center text-xs px-3 py-1.5 bg-violet hover:bg-violet-bright text-white font-semibold rounded-lg transition"
+                    >
+                      Open
+                    </Link>
+                    <Link
+                      href={`/builder?id=${app.id}`}
+                      className="text-xs px-3 py-1.5 bg-raised hover:bg-line text-ink/80 font-semibold rounded-lg transition"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => setDeleteConfirm(app.id)}
+                      className="text-xs px-2 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition ml-auto"
+                      title="Delete app"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* New App card */}
+              <Link
+                href="/builder"
+                className="group border-2 border-dashed border-line hover:border-violet/40 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 text-muted hover:text-violet transition min-h-[160px]"
+              >
+                <span className="text-2xl group-hover:scale-110 transition-transform">+</span>
+                <span className="text-xs font-semibold">New App</span>
+              </Link>
+            </div>
+          )}
+        </section>
       </main>
+
+      {/* Delete confirm modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="font-semibold text-ink">Delete &quot;{appToDelete?.appName}&quot;?</h3>
+            <p className="text-sm text-muted mt-1">This will permanently delete the app and all {appToDelete?._count?.records ?? 0} records. This cannot be undone.</p>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 py-2 border border-line text-ink text-sm font-semibold rounded-xl hover:bg-raised transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

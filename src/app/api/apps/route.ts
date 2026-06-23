@@ -17,7 +17,18 @@ export async function GET() {
     include: { _count: { select: { records: true } } },
   });
 
-  return NextResponse.json({ apps });
+  // Derive just the field types for the dashboard's schema-fingerprint
+  // preview, instead of shipping each app's full config JSON in a list
+  // response that doesn't otherwise need it.
+  const withFieldTypes = apps.map((app: (typeof apps)[number]) => {
+    const parsed = AppConfigSchema.safeParse(app.config);
+    return {
+      ...app,
+      fieldTypes: parsed.success ? parsed.data.dataSchema.map((f) => f.type) : [],
+    };
+  });
+
+  return NextResponse.json({ apps: withFieldTypes });
 }
 
 // POST /api/apps — compile + persist a new app from a JSON config.
