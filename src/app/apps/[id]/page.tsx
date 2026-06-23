@@ -44,11 +44,11 @@ export default function AppViewPage({ params }: { params: { id: string } }) {
 
       <main className="max-w-5xl mx-auto px-6 py-8">
         {error && (
-          <div className="p-5 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm flex items-start gap-3">
+          <div className="p-5 bg-red-950/40 border border-red-800/50 rounded-2xl text-red-400 text-sm flex items-start gap-3">
             <span className="text-red-400 mt-0.5">✕</span>
             <div>
               <p className="font-semibold">Failed to load app</p>
-              <p className="text-red-600 text-xs mt-0.5">{error}</p>
+              <p className="text-red-400/80 text-xs mt-0.5">{error}</p>
             </div>
           </div>
         )}

@@ -191,7 +191,7 @@ export default function DashboardPage() {
                     </Link>
                     <button
                       onClick={() => setDeleteConfirm(app.id)}
-                      className="text-xs px-2 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition ml-auto"
+                      className="text-xs px-2 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-950/40 rounded-lg transition ml-auto"
                       title="Delete app"
                     >
                       ✕
@@ -216,7 +216,7 @@ export default function DashboardPage() {
       {/* Delete confirm modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+          <div className="bg-surface border border-line rounded-2xl shadow-glow p-6 w-full max-w-sm">
             <h3 className="font-semibold text-ink">Delete &quot;{appToDelete?.appName}&quot;?</h3>
             <p className="text-sm text-muted mt-1">This will permanently delete the app and all {appToDelete?._count?.records ?? 0} records. This cannot be undone.</p>
             <div className="flex gap-3 mt-5">

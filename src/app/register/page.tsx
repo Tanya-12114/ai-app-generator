@@ -53,7 +53,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-2xl p-6 shadow-card space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted uppercase tracking-wider">Name <span className="text-gray-300 normal-case font-normal">(optional)</span></label>
+            <label className="text-xs font-semibold text-muted uppercase tracking-wider">Name <span className="text-muted/60 normal-case font-normal">(optional)</span></label>
             <input
               type="text"
               placeholder="Jane Smith"
@@ -103,7 +103,7 @@ export default function RegisterPage() {
                       (passwordStrength === "weak" && i === 0) ? "bg-red-400" :
                       (passwordStrength === "fair" && i <= 1) ? "bg-amber-400" :
                       (passwordStrength === "strong") ? "bg-green-500" :
-                      "bg-gray-200"
+                      "bg-line"
                     }`} />
                   ))}
                 </div>
@@ -117,7 +117,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 flex items-center gap-2">
+            <div className="px-3 py-2.5 bg-red-950/40 border border-red-800/50 rounded-xl text-xs text-red-400 flex items-center gap-2">
               <span>✕</span> {error}
             </div>
           )}

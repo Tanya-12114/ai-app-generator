@@ -226,12 +226,12 @@ export default function BuilderContent() {
           </div>
 
           {/* Error / status bar */}
-          <div className={`px-3 py-2 rounded-lg text-xs font-mono ${jsonError ? "bg-red-50 border border-red-200 text-red-600" : "bg-gray-50 border border-gray-100 text-gray-400"}`}>
+          <div className={`px-3 py-2 rounded-lg text-xs font-mono ${jsonError ? "bg-red-950/40 border border-red-800/50 text-red-400" : "bg-raised border border-line text-muted"}`}>
             {jsonError ? `⚠ ${jsonError}` : `✓ Valid JSON — ${Object.keys(parsedJson || {}).length} top-level keys`}
           </div>
 
           {saveError && (
-            <div className="px-3 py-2 rounded-lg text-xs bg-red-50 border border-red-200 text-red-600">{saveError}</div>
+            <div className="px-3 py-2 rounded-lg text-xs bg-red-950/40 border border-red-800/50 text-red-400">{saveError}</div>
           )}
         </div>
 
@@ -245,7 +245,7 @@ export default function BuilderContent() {
           {parsedJson ? (
             <AppRuntime rawConfig={parsedJson} />
           ) : (
-            <div className="p-8 bg-amber-50 border border-amber-200 rounded-2xl text-amber-700 text-sm text-center">
+            <div className="p-8 bg-amber-950/30 border border-amber-800/40 rounded-2xl text-amber-400 text-sm text-center">
               <p className="font-semibold">Preview paused</p>
               <p className="text-xs mt-1 text-amber-600">Fix the JSON syntax error to resume live preview.</p>
             </div>

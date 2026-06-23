@@ -70,7 +70,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 flex items-center gap-2">
+            <div className="px-3 py-2.5 bg-red-950/40 border border-red-800/50 rounded-xl text-xs text-red-400 flex items-center gap-2">
               <span>✕</span> {error}
             </div>
           )}
