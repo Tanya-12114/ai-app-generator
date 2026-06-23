@@ -6,58 +6,49 @@ import { AppRuntime } from "@/components/runtime/AppRuntime";
 import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 
 const MOCK_CONFIG = {
-  appName: "Operations Control Center",
-  version: "2.4.1",
-  sections: [
+  "appName": "Task Tracker",
+  "version": "1.0.0",
+  "sections": [
     {
-      id: "sec-1",
-      title: "User Provisioning Engine",
-      layout: "RESPONSIVE",
-      components: [
-        { id: "inp-1", type: "INPUT", label: "Corporate Email Address", placeholder: "you@firm.com" },
-        { id: "inp-2", type: "INPUT", label: "Full Name", placeholder: "Jane Smith" },
-        { id: "btn-1", type: "BUTTON", label: "Provision Workspace Access", props: { variant: "primary" } },
-      ],
+      "id": "sec-form",
+      "title": "Create New Task",
+      "layout": "RESPONSIVE",
+      "components": [
+        { "id": "inp-title", "type": "INPUT", "label": "Task Title", "placeholder": "e.g. Fix login bug", "field": "title" },
+        { "id": "sel-status", "type": "SELECT", "label": "Status", "field": "status", "props": { "options": ["OPEN", "IN_PROGRESS", "DONE"] } },
+        { "id": "sel-priority", "type": "SELECT", "label": "Priority", "field": "priority", "props": { "options": ["LOW", "MEDIUM", "HIGH"] } },
+        { "id": "btn-create", "type": "BUTTON", "label": "Create Task", "props": { "variant": "primary" } }
+      ]
     },
     {
-      id: "sec-2",
-      title: "System Health Overview",
-      layout: "GRID",
-      components: [
-        { id: "s-1", type: "STAT", label: "Active Users", props: { value: "1,284", change: 12 } },
-        { id: "s-2", type: "STAT", label: "Uptime", props: { value: "99.9%", change: 0.1 } },
-        { id: "s-3", type: "STAT", label: "Errors", props: { value: "3", change: -40 } },
-      ],
-    },
-    {
-      id: "sec-3",
-      title: "Graceful Error Recovery Demo",
-      layout: "GRID",
-      components: [
-        { id: "c-1", type: "CARD", label: "Active Analytics Node", props: { description: "Processing 4.2k events/sec" } },
-        { id: "err-1", type: "UNKNOWN_CHART_WIDGET", label: "This type is not registered — renders gracefully" },
-        { id: "c-2", type: "CARD", label: "Backup Datastore", props: { description: "Replica lag: 12ms" } },
-      ],
-    },
+      "id": "sec-stats",
+      "title": "Overview",
+      "layout": "GRID",
+      "components": [
+        { "id": "stat-total", "type": "STAT", "label": "Total Tasks", "props": { "value": "0" } },
+        { "id": "stat-done", "type": "STAT", "label": "Completed", "props": { "value": "0" } },
+        { "id": "stat-open", "type": "STAT", "label": "Open", "props": { "value": "0" } }
+      ]
+    }
   ],
-  dataSchema: [
-    { name: "title", type: "STRING", required: true },
-    { name: "status", type: "SELECT", options: ["OPEN", "IN_PROGRESS", "DONE"], required: false, default: "OPEN" },
-    { name: "priority", type: "SELECT", options: ["LOW", "MEDIUM", "HIGH"], required: false, default: "MEDIUM" },
-    { name: "due_date", type: "DATE", required: false },
+  "dataSchema": [
+    { "name": "title", "type": "STRING", "required": true },
+    { "name": "status", "type": "SELECT", "options": ["OPEN", "IN_PROGRESS", "DONE"], "required": false, "default": "OPEN" },
+    { "name": "priority", "type": "SELECT", "options": ["LOW", "MEDIUM", "HIGH"], "required": false, "default": "MEDIUM" },
+    { "name": "due_date", "type": "DATE", "required": false }
   ],
-  workflows: [
+  "workflows": [
     {
-      id: "wf-1",
-      trigger: "ON_RECORD_CREATE",
-      actions: [{ type: "NOTIFY", message: "New task created: {{title}} [{{status}}]" }],
+      "id": "wf-created",
+      "trigger": "ON_RECORD_CREATE",
+      "actions": [{ "type": "NOTIFY", "message": "New task created: {{title}} [{{status}}]" }]
     },
     {
-      id: "wf-2",
-      trigger: "ON_RECORD_DELETE",
-      actions: [{ type: "NOTIFY", message: "Task deleted: {{title}}" }],
-    },
-  ],
+      "id": "wf-deleted",
+      "trigger": "ON_RECORD_DELETE",
+      "actions": [{ "type": "NOTIFY", "message": "Task deleted: {{title}}" }]
+    }
+  ]
 };
 
 export default function BuilderContent() {
