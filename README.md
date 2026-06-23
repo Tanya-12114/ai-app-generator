@@ -86,10 +86,19 @@ page routes.
 ### Option A — Docker Compose (recommended, no Postgres install needed)
 
 ```bash
-cp .env.example .env        # only NEXTAUTH_SECRET matters here, see file comments
+cp .env.example .env   
+docker builder prune -af     # only NEXTAUTH_SECRET matters here, see file comments
 docker compose up --build
 ```
+OR
 
+```bash
+# Start only the database container
+docker compose up db -d
+
+# Then run the app locally
+npm run dev
+```
 This spins up three containers:
 - `postgres` — Postgres 16 with a persisted named volume (`postgres_data`), so
   data survives restarts

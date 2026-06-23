@@ -19,7 +19,7 @@ const DynamicInput: React.FC<{ config: ComponentConfig }> = ({ config }) => (
     <input
       type="text"
       placeholder={config.placeholder}
-      className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition bg-white"
+      className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition bg-white text-gray-900 placeholder:text-gray-400"
     />
   </div>
 );
@@ -31,7 +31,7 @@ const DynamicTextarea: React.FC<{ config: ComponentConfig }> = ({ config }) => (
     <textarea
       placeholder={config.placeholder}
       rows={3}
-      className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition resize-none bg-white"
+      className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition resize-none bg-white text-gray-900 placeholder:text-gray-400"
     />
   </div>
 );
@@ -42,10 +42,10 @@ const DynamicSelect: React.FC<{ config: ComponentConfig }> = ({ config }) => {
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{config.label}</label>
-      <select className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full bg-white focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition">
-        <option value="">Select an option...</option>
-        {options.length === 0 && <option disabled>No options configured</option>}
-        {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+      <select className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full bg-white text-gray-900 focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition">
+        <option value="" className="text-gray-900 bg-white">Select an option...</option>
+        {options.length === 0 && <option disabled className="text-gray-400 bg-white">No options configured</option>}
+        {options.map((opt) => <option key={opt} value={opt} className="text-gray-900 bg-white">{opt}</option>)}
       </select>
     </div>
   );
@@ -118,7 +118,7 @@ const DynamicBadge: React.FC<{ config: ComponentConfig }> = ({ config }) => {
 const DynamicStatCard: React.FC<{ config: ComponentConfig }> = ({ config }) => (
   <div className="p-5 border border-gray-200 rounded-xl bg-white shadow-card">
     <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{config.label}</p>
-    <p className="text-3xl font-bold text-ink mt-1">{config.props?.value ?? "—"}</p>
+    <p className="text-3xl font-bold text-ink mt-12">{config.props?.value ?? "—"}</p>
     {config.props?.change !== undefined && (
       <p className={`text-xs mt-1.5 font-medium ${Number(config.props.change) >= 0 ? "text-green-600" : "text-red-500"}`}>
         {Number(config.props.change) >= 0 ? "↑" : "↓"} {Math.abs(Number(config.props.change))}%

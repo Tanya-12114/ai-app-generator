@@ -83,7 +83,19 @@ export const AppRuntime: React.FC<{ rawConfig: any; appId?: string }> = ({ rawCo
               No sections defined. Add a <code className="text-xs bg-gray-100 px-1 rounded">sections</code> array to your config.
             </div>
           ) : (
-            appData.sections.map((section) => (
+            <>
+              {/* Preview-only notice */}
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 text-xs">
+                <svg className="w-3.5 h-3.5 shrink-0 text-blue-400" fill="none" viewBox="0 0 16 16">
+                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M8 7v4M8 5.5v.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+                <span>
+                  <strong className="font-semibold">UI Preview only</strong> — buttons and inputs here are visual demos.
+                  Switch to <button onClick={() => {}} className="underline font-semibold text-blue-700">Live Data</button> tab to create, edit and delete real records.
+                </span>
+              </div>
+            {appData.sections.map((section) => (
               <div key={section.id} className="bg-white border border-gray-100 rounded-xl p-5 shadow-card">
                 <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
                   {section.title}
@@ -109,7 +121,8 @@ export const AppRuntime: React.FC<{ rawConfig: any; appId?: string }> = ({ rawCo
                   ))}
                 </div>
               </div>
-            ))
+            ))}
+            </>
           )
         )}
 

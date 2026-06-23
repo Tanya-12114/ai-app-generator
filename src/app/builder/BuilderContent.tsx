@@ -188,6 +188,21 @@ export default function BuilderContent() {
 
       <div className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
+        {/* ── Demo Notice Banner ── */}
+        {!editingId && (
+          <div className="lg:col-span-2 flex items-center gap-3 px-4 py-2.5 bg-violet-soft border border-violet/20 rounded-xl">
+            <svg className="w-4 h-4 shrink-0 text-violet" fill="none" viewBox="0 0 20 20">
+              <path d="M10 2a8 8 0 1 0 0 16A8 8 0 0 0 10 2zm0 4v4m0 3h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <p className="text-xs text-violet-light">
+              <span className="font-semibold">Demo config loaded.</span>{" "}
+              This is a pre-filled Task Tracker script — edit it freely or replace it with your own JSON.
+              Hit <span className="font-semibold">Generate App</span> when ready.
+            </p>
+          </div>
+        )}
+
+
         {/* ── Editor Panel ── */}
         <div className={`flex flex-col gap-2 ${activePanel === "preview" ? "hidden lg:flex" : "flex"}`}>
           <div className="flex items-center justify-between">
