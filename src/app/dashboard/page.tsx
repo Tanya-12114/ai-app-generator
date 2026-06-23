@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AccountMenu } from "@/components/AccountMenu";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -34,7 +35,6 @@ export default function DashboardPage() {
   );
 
   const totalRecords = apps.reduce((sum, a) => sum + (a._count?.records ?? 0), 0);
-  const initial = (session?.user?.email || "?").charAt(0).toUpperCase();
 
   const appToDelete = apps.find(a => a.id === deleteConfirm);
 
@@ -50,17 +50,8 @@ export default function DashboardPage() {
             <span className="font-semibold text-ink tracking-tight">AI App Generator</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline text-xs text-muted">{session?.user?.email}</span>
             <NotificationBell />
-            <div className="w-7 h-7 rounded-full bg-violet-soft text-violet-bright text-xs font-bold flex items-center justify-center border border-violet/20">
-              {initial}
-            </div>
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="text-xs px-3 py-1.5 text-muted hover:text-ink hover:bg-raised rounded-lg transition"
-            >
-              Sign out
-            </button>
+            <AccountMenu email={session?.user?.email} name={session?.user?.name} />
           </div>
         </div>
       </header>

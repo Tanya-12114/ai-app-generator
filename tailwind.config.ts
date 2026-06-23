@@ -19,10 +19,15 @@ const config: Config = {
         },
         paper: "#F7F5EF",
         line: "#E7E2D5",
+        canvas: "#F7F5EF",
+        surface: "#FFFFFF",
+        raised: "#F1EEE5",
+        muted: "#8A8578",
         violet: {
           DEFAULT: "#5B4FE5",
           deep: "#4338CA",
           soft: "#EEECFC",
+          bright: "#6D62F2",
         },
         mint: {
           DEFAULT: "#1FAE73",
@@ -32,6 +37,11 @@ const config: Config = {
           DEFAULT: "#D98C2B",
           soft: "#FBEEDD",
         },
+      },
+      boxShadow: {
+        card: "0 1px 2px rgba(14,17,22,0.06), 0 1px 1px rgba(14,17,22,0.04)",
+        hover: "0 4px 12px rgba(14,17,22,0.10)",
+        glow: "0 8px 30px rgba(14,17,22,0.12)",
       },
       fontFamily: {
         display: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
