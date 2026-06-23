@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { Bell } from "lucide-react";
 
 export const NotificationBell: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -62,9 +63,7 @@ export const NotificationBell: React.FC = () => {
         className={`relative px-2 py-1.5 rounded-lg transition text-muted hover:text-ink hover:bg-raised ${open ? "bg-raised" : ""}`}
         aria-label="Notifications"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 20 20">
-          <path d="M10 2a6 6 0 0 0-6 6c0 3.5-1.5 5-1.5 5h15s-1.5-1.5-1.5-5a6 6 0 0 0-6-6zM8.5 17a1.5 1.5 0 0 0 3 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-        </svg>
+        <Bell className="w-4 h-4" strokeWidth={1.75} />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 bg-amber text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
             {unread > 9 ? "9+" : unread}

@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AppRuntime } from "@/components/runtime/AppRuntime";
+import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 
 const MOCK_CONFIG = {
   appName: "Operations Control Center",
@@ -179,8 +180,8 @@ export default function BuilderContent() {
             <button onClick={handleCopy} className="hidden sm:block px-3 py-1.5 text-xs font-medium text-muted hover:text-ink border border-line rounded-lg hover:bg-raised transition">
               {copyDone ? "Copied!" : "Copy"}
             </button>
-            <Link href="/dashboard" className="px-3 py-1.5 text-xs font-medium text-muted hover:text-ink border border-line rounded-lg hover:bg-raised transition">
-              ← Dashboard
+            <Link href="/dashboard" className="px-3 py-1.5 text-xs font-medium text-muted hover:text-ink border border-line rounded-lg hover:bg-raised transition inline-flex items-center gap-1.5">
+              <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} /> Dashboard
             </Link>
             <button
               onClick={handleSave}
@@ -203,8 +204,8 @@ export default function BuilderContent() {
             <div className="flex items-center gap-2 text-[10px] text-muted font-mono">
               <span>{lineCount} lines</span>
               {jsonError
-                ? <span className="text-red-400 font-semibold">● Invalid JSON</span>
-                : <span className="text-green-500 font-semibold">● Valid</span>}
+                ? <span className="text-red-400 font-semibold inline-flex items-center gap-1"><XCircle className="w-3 h-3" strokeWidth={2} /> Invalid JSON</span>
+                : <span className="text-green-500 font-semibold inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" strokeWidth={2} /> Valid</span>}
             </div>
           </div>
 
@@ -226,8 +227,9 @@ export default function BuilderContent() {
           </div>
 
           {/* Error / status bar */}
-          <div className={`px-3 py-2 rounded-lg text-xs font-mono ${jsonError ? "bg-red-950/40 border border-red-800/50 text-red-400" : "bg-raised border border-line text-muted"}`}>
-            {jsonError ? `⚠ ${jsonError}` : `✓ Valid JSON — ${Object.keys(parsedJson || {}).length} top-level keys`}
+          <div className={`px-3 py-2 rounded-lg text-xs font-mono flex items-center gap-1.5 ${jsonError ? "bg-red-950/40 border border-red-800/50 text-red-400" : "bg-raised border border-line text-muted"}`}>
+            {jsonError ? <XCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2} /> : <CheckCircle2 className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />}
+            {jsonError ? jsonError : `Valid JSON — ${Object.keys(parsedJson || {}).length} top-level keys`}
           </div>
 
           {saveError && (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AccountMenu } from "@/components/AccountMenu";
+import { Hexagon, Diamond, RefreshCw, Circle, Search, X, Plus } from "lucide-react";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -71,21 +72,24 @@ export default function DashboardPage() {
             href="/builder"
             className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 bg-violet hover:bg-violet-bright text-white text-sm font-semibold rounded-xl transition shadow-card whitespace-nowrap"
           >
-            <span className="text-base leading-none">+</span> New App
+            <Plus className="w-4 h-4" strokeWidth={2.25} /> New App
           </Link>
         </section>
 
         {/* Stats */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Apps", value: apps.length, icon: "⬡" },
-            { label: "Records", value: totalRecords, icon: "◈" },
-            { label: "Workflows", value: apps.reduce((s, a) => s + (a.config?.workflows?.length ?? 0), 0), icon: "⟳" },
-            { label: "Status", value: "Online", icon: "●", green: true },
+            { label: "Apps", value: apps.length, icon: Hexagon },
+            { label: "Records", value: totalRecords, icon: Diamond },
+            { label: "Workflows", value: apps.reduce((s, a) => s + (a.config?.workflows?.length ?? 0), 0), icon: RefreshCw },
+            { label: "Status", value: "Online", icon: Circle, green: true },
           ].map(stat => (
             <div key={stat.label} className="rounded-xl border border-line bg-surface px-5 py-4 hover:border-violet/20 transition-colors">
               <p className="text-[11px] font-semibold text-muted uppercase tracking-wide flex items-center gap-1.5">
-                <span className="text-violet/70">{stat.icon}</span>{stat.label}
+                                {stat.label === "Status"
+                  ? <Circle className="w-3 h-3 text-mint fill-mint" />
+                  : <stat.icon className="w-3 h-3 text-violet/70" strokeWidth={2} />}
+                {stat.label}
               </p>
               <p className={`text-3xl font-display font-semibold mt-1.5 ${stat.green ? "text-mint" : "text-ink"}`}>
                 {stat.value}
@@ -103,9 +107,7 @@ export default function DashboardPage() {
             {/* Search */}
             {apps.length > 2 && (
               <div className="relative">
-                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted" fill="none" viewBox="0 0 16 16">
-                  <path d="M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10zm4.243-1.757 2.757 2.757" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted" strokeWidth={2} />
                 <input
                   type="text"
                   placeholder="Search apps..."
@@ -115,8 +117,8 @@ export default function DashboardPage() {
                 />
               </div>
             )}
-            <Link href="/builder" className="sm:hidden px-3 py-1.5 bg-violet text-white text-xs font-semibold rounded-lg">
-              + New App
+            <Link href="/builder" className="sm:hidden px-3 py-1.5 bg-violet text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5" strokeWidth={2.25} /> New App
             </Link>
           </div>
 
@@ -128,13 +130,15 @@ export default function DashboardPage() {
             </div>
           ) : apps.length === 0 ? (
             <div className="py-16 border-2 border-dashed border-line rounded-2xl text-center">
-              <div className="w-12 h-12 rounded-2xl bg-violet-soft flex items-center justify-center mx-auto mb-4 text-xl">⬡</div>
+              <div className="w-12 h-12 rounded-2xl bg-violet-soft flex items-center justify-center mx-auto mb-4">
+                <Hexagon className="w-6 h-6 text-violet-bright" strokeWidth={1.75} />
+              </div>
               <p className="text-sm font-medium text-ink">No apps yet</p>
               <p className="text-xs text-muted mt-1 max-w-xs mx-auto">
                 Click <strong className="text-ink">New App</strong> to write your first JSON config and generate a working application.
               </p>
               <Link href="/builder" className="inline-flex items-center gap-2 mt-5 px-4 py-2.5 bg-violet hover:bg-violet-bright text-white text-sm font-semibold rounded-xl transition shadow-card">
-                + New App
+                <Plus className="w-4 h-4" strokeWidth={2.25} /> New App
               </Link>
             </div>
           ) : filtered.length === 0 ? (
@@ -194,7 +198,7 @@ export default function DashboardPage() {
                       className="text-xs px-2 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-950/40 rounded-lg transition ml-auto"
                       title="Delete app"
                     >
-                      ✕
+                      <X className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>
                   </div>
                 </div>
@@ -205,7 +209,7 @@ export default function DashboardPage() {
                 href="/builder"
                 className="group border-2 border-dashed border-line hover:border-violet/40 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 text-muted hover:text-violet transition min-h-[160px]"
               >
-                <span className="text-2xl group-hover:scale-110 transition-transform">+</span>
+                <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" strokeWidth={2} />
                 <span className="text-xs font-semibold">New App</span>
               </Link>
             </div>

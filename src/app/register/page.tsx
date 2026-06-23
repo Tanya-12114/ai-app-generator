@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { XCircle } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -118,7 +119,7 @@ export default function RegisterPage() {
 
           {error && (
             <div className="px-3 py-2.5 bg-red-950/40 border border-red-800/50 rounded-xl text-xs text-red-400 flex items-center gap-2">
-              <span>✕</span> {error}
+              <XCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2} /> {error}
             </div>
           )}
 
