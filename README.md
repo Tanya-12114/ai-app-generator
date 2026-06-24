@@ -7,7 +7,7 @@ automation rules.
 ## Architecture
 
 ```
-JSON config ──► zod schema (AppConfigSchema) ──► two parallel outputs
+JSON config ──► zod schema (AppConfigSchema) ──► two outputs, opt-in linked
                                                    │
                 ┌──────────────────────────────────┴───────────────────────┐
                 ▼                                                          ▼
@@ -17,22 +17,34 @@ JSON config ──► zod schema (AppConfigSchema) ──► two parallel output
      instead of crashing (RegistryRenderer)                from declared fields
    - RuntimeErrorBoundary wraps every component so a      - AppRecord table stores rows as
      single bad widget can't crash the page                 JSON, validated against that
-                                                              dynamic schema on every write
-                                                            - Workflows (declarative NOTIFY /
-                                                              WEBHOOK rules) run on record
-                                                              create/update/delete
+   - FormContext: a section with ≥1 field-mapped            dynamic schema on every write
+     component becomes a controlled form whose BUTTON     - Workflows (declarative NOTIFY /
+     POSTs to the same /records endpoint as the              WEBHOOK rules) run on record
+     dataSchema-driven table (AppRuntime.tsx)                create/update/delete
+   - RecordsContext: STAT/STAT_CARD with a `computed`
+     prop reads real record counts instead of a
+     static props.value (ComponentRegistry.tsx)
 ```
 
-**Important architectural note (read this before the review):** the two
-outputs above are intentionally *not* the same form engine. `sections` /
-`ComponentRegistry` is a presentational canvas — `INPUT`/`SELECT`/`CHECKBOX`/
-etc. render with no `value`/`onChange` wiring back to any record, by design.
-The actual functional create/edit/delete form is generated separately,
-straight from `dataSchema`, inside `DataTable.tsx` (controlled inputs, real
-submit handler, real validation). If asked "does the form in the JSON
-config actually save data," the honest answer is: only the `dataSchema`
-side does. Calling this out proactively rather than letting it look like an
-unwired feature.
+**Architectural note (read this before the review):** `sections`/
+`ComponentRegistry` and `dataSchema` are still two separate engines — a
+config author can build a section with zero field-mapped components (pure
+display: cards, badges, dividers) and it stays purely presentational, as
+before. But any section containing field-mapped components (`field` set on
+`INPUT`/`SELECT`/`TEXTAREA`/`CHECKBOX`/`DATE`) is now a *real* form: those
+components become controlled inputs bound to local state via `FormContext`,
+and a `BUTTON` in the same section submits that state to
+`POST /api/apps/[id]/records` — the exact same dynamic-schema validation
+path `DataTable.tsx` uses, including required-field and type-coercion
+errors surfaced inline by the button. Symmetrically, `STAT`/`STAT_CARD`
+components can opt into a `props.computed` spec (`{ field, equals,
+notEquals, in, notIn }`, no `field` = total count) to render a live
+aggregate over `AppRuntime`'s already-fetched records instead of a static
+number — useful for "Total / Completed / Open"-style overview panels that
+should track real data. Both are opt-in per component: omit `field` on
+inputs or `computed` on stat cards and you get the original inert demo
+behavior. So: "does the form in the JSON config actually save data" is now
+"yes, if its components declare a `field`" rather than a flat no.
 
 **Why JSON rows instead of generating real SQL tables per app?** Generating
 and migrating a literal Postgres table per user-defined schema is the
@@ -55,7 +67,7 @@ placeholder instead of crashing (`ComponentRegistry.tsx`), and
 `RuntimeErrorBoundary` catches any render-time exception so one broken
 section never takes the rest of the app down.
 
-## Extra features implemented (3 of 7 required)
+## Extra features implemented (3 of 7 required, + 1 runtime enhancement)
 
 1. **CSV Import** — `/api/apps/[id]/import`. Parses with PapaParse, validates
    each row independently against the dynamic record schema; bad rows are
@@ -67,6 +79,13 @@ section never takes the rest of the app down.
    (`ON_RECORD_CREATE` / `ON_RECORD_UPDATE` / `ON_RECORD_DELETE` →
    `NOTIFY` or `WEBHOOK`). Executed server-side in `lib/workflows.ts`; failures
    are swallowed so automation can never break the underlying CRUD call.
+4. **Live UI Preview ↔ Live Data binding** — field-mapped components in a
+   preview section (`AppRuntime.tsx` `FormSectionProvider` +
+   `ComponentRegistry.tsx` `FormContext`) write real records through the same
+   endpoint and validation as the Live Data tab, and `STAT`/`STAT_CARD`
+   components can render a live count via `props.computed` instead of a
+   static value (`RecordsContext`). Both fall back to the original static
+   demo rendering when not opted in, so existing configs are unaffected.
 
 ## Auth
 
