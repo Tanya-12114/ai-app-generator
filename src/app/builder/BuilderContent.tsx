@@ -17,6 +17,7 @@ const MOCK_CONFIG = {
         { "id": "inp-title", "type": "INPUT", "label": "Task Title", "placeholder": "e.g. Fix login bug", "field": "title" },
         { "id": "sel-status", "type": "SELECT", "label": "Status", "field": "status", "props": { "options": ["OPEN", "IN_PROGRESS", "DONE"] } },
         { "id": "sel-priority", "type": "SELECT", "label": "Priority", "field": "priority", "props": { "options": ["LOW", "MEDIUM", "HIGH"] } },
+        { "id": "date-due", "type": "INPUT_DATE", "label": "Due Date", "field": "due_date" },
         { "id": "btn-create", "type": "BUTTON", "label": "Create Task", "props": { "variant": "primary" } }
       ]
     },

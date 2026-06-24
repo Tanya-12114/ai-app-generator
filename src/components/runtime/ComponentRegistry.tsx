@@ -24,6 +24,23 @@ const DynamicInput: React.FC<{ config: ComponentConfig }> = ({ config }) => (
   </div>
 );
 
+
+// ─── Date Input ───────────────────────────────────────────────────────────────
+const DynamicDateInput: React.FC<{ config: ComponentConfig; ctx?: FormContextValue }> = ({ config, ctx }) => {
+  const value = ctx && config.field ? (ctx.values[config.field] ?? "") : "";
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{config.label}</label>
+      <input
+        type="date"
+        value={ctx && config.field ? value : undefined}
+        onChange={ctx && config.field ? (e) => ctx.onChange(config.field!, e.target.value) : undefined}
+        className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition bg-white text-gray-900"
+      />
+    </div>
+  );
+};
+
 // ─── Textarea ─────────────────────────────────────────────────────────────────
 const DynamicTextarea: React.FC<{ config: ComponentConfig }> = ({ config }) => (
   <div className="flex flex-col gap-1.5 w-full">
@@ -192,6 +209,8 @@ const DynamicToggle: React.FC<{ config: ComponentConfig }> = ({ config }) => {
 // ─── Registry ─────────────────────────────────────────────────────────────────
 const REGISTRY: Record<string, React.FC<{ config: ComponentConfig }>> = {
   INPUT: DynamicInput,
+  INPUT_DATE: DynamicDateInput,
+  DATE: DynamicDateInput,
   TEXTAREA: DynamicTextarea,
   SELECT: DynamicSelect,
   CHECKBOX: DynamicCheckbox,
