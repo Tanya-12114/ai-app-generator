@@ -118,7 +118,7 @@ const DynamicBadge: React.FC<{ config: ComponentConfig }> = ({ config }) => {
 const DynamicStatCard: React.FC<{ config: ComponentConfig }> = ({ config }) => (
   <div className="p-5 border border-gray-200 rounded-xl bg-white shadow-card">
     <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{config.label}</p>
-    <p className="text-3xl font-bold text-ink mt-12">{config.props?.value ?? "—"}</p>
+    <p className="text-3xl font-bold mt-1" style={{color:"#111827"}}>{config.props?.value ?? "—"}</p>
     {config.props?.change !== undefined && (
       <p className={`text-xs mt-1.5 font-medium ${Number(config.props.change) >= 0 ? "text-green-600" : "text-red-500"}`}>
         {Number(config.props.change) >= 0 ? "↑" : "↓"} {Math.abs(Number(config.props.change))}%
