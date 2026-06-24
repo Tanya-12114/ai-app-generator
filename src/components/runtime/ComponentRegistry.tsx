@@ -1,5 +1,59 @@
-import React, { useState } from "react";
+import React, { useState, useContext, createContext } from "react";
 import { ComponentConfig } from "@/types/schema";
+
+// ─── Form context ──────────────────────────────────────────────────────────
+// Wired up by AppRuntime around any section that has at least one field-mapped
+// component + an appId (i.e. a real, saved app). When present, field
+// components become controlled inputs bound to `values[field]`, and a BUTTON
+// in the same section submits those values as a new record via the records
+// API — this is what connects "UI Preview" to "Live Data".
+// When absent (no appId, or a section with no field-mapped components),
+// every component below falls back to its original, inert demo behavior.
+export interface FormContextValue {
+  values: Record<string, any>;
+  onChange: (field: string, value: any) => void;
+  onSubmit?: () => void;
+  submitting?: boolean;
+  message?: { type: "success" | "error"; text: string } | null;
+}
+export const FormContext = createContext<FormContextValue | null>(null);
+
+// ─── Records context ───────────────────────────────────────────────────────
+// Wired up by AppRuntime at the app level (whenever appId is present) so
+// STAT / STAT_CARD components can show a real, live count instead of the
+// static `props.value` baked into the config. Opt in per-component by adding
+// a `computed` prop, e.g.:
+//   { "type": "STAT", "label": "Total Tasks", "props": { "computed": {} } }
+//   { "type": "STAT", "label": "Completed",   "props": { "computed": { "field": "status", "equals": "DONE" } } }
+//   { "type": "STAT", "label": "Open",        "props": { "computed": { "field": "status", "notEquals": "DONE" } } }
+// A component with no `computed` prop keeps showing its static props.value,
+// exactly as before — fully backward compatible.
+export interface ComputedStatSpec {
+  field?: string;
+  equals?: string | number | boolean;
+  notEquals?: string | number | boolean;
+  in?: (string | number)[];
+  notIn?: (string | number)[];
+}
+export interface RecordsContextValue {
+  records: any[];
+  loading: boolean;
+}
+export const RecordsContext = createContext<RecordsContextValue | null>(null);
+
+function normalize(v: any): any {
+  return typeof v === "string" ? v.toLowerCase() : v;
+}
+
+function matchesComputed(record: any, spec: ComputedStatSpec): boolean {
+  if (!spec.field) return true; // no field → counts every record (total)
+  const val = normalize(record?.data?.[spec.field]);
+  if (spec.equals !== undefined && val !== normalize(spec.equals)) return false;
+  if (spec.notEquals !== undefined && val === normalize(spec.notEquals)) return false;
+  if (spec.in && !spec.in.map(normalize).includes(val)) return false;
+  if (spec.notIn && spec.notIn.map(normalize).includes(val)) return false;
+  return true;
+}
 
 // ─── Unknown component — graceful fallback ────────────────────────────────────
 const UnknownComponent: React.FC<{ config: ComponentConfig }> = ({ config }) => (
@@ -13,28 +67,35 @@ const UnknownComponent: React.FC<{ config: ComponentConfig }> = ({ config }) => 
 );
 
 // ─── Input ────────────────────────────────────────────────────────────────────
-const DynamicInput: React.FC<{ config: ComponentConfig }> = ({ config }) => (
-  <div className="flex flex-col gap-1.5 w-full">
-    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{config.label}</label>
-    <input
-      type="text"
-      placeholder={config.placeholder}
-      className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition bg-white text-gray-900 placeholder:text-gray-400"
-    />
-  </div>
-);
+const DynamicInput: React.FC<{ config: ComponentConfig }> = ({ config }) => {
+  const ctx = useContext(FormContext);
+  const bound = !!(ctx && config.field);
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{config.label}</label>
+      <input
+        type="text"
+        placeholder={config.placeholder}
+        value={bound ? (ctx!.values[config.field!] ?? "") : undefined}
+        onChange={bound ? (e) => ctx!.onChange(config.field!, e.target.value) : undefined}
+        className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition bg-white text-gray-900 placeholder:text-gray-400"
+      />
+    </div>
+  );
+};
 
 
 // ─── Date Input ───────────────────────────────────────────────────────────────
-const DynamicDateInput: React.FC<{ config: ComponentConfig; ctx?: FormContextValue }> = ({ config, ctx }) => {
-  const value = ctx && config.field ? (ctx.values[config.field] ?? "") : "";
+const DynamicDateInput: React.FC<{ config: ComponentConfig }> = ({ config }) => {
+  const ctx = useContext(FormContext);
+  const bound = !!(ctx && config.field);
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{config.label}</label>
       <input
         type="date"
-        value={ctx && config.field ? value : undefined}
-        onChange={ctx && config.field ? (e) => ctx.onChange(config.field!, e.target.value) : undefined}
+        value={bound ? (ctx!.values[config.field!] ?? "") : undefined}
+        onChange={bound ? (e) => ctx!.onChange(config.field!, e.target.value) : undefined}
         className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition bg-white text-gray-900"
       />
     </div>
@@ -42,24 +103,36 @@ const DynamicDateInput: React.FC<{ config: ComponentConfig; ctx?: FormContextVal
 };
 
 // ─── Textarea ─────────────────────────────────────────────────────────────────
-const DynamicTextarea: React.FC<{ config: ComponentConfig }> = ({ config }) => (
-  <div className="flex flex-col gap-1.5 w-full">
-    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{config.label}</label>
-    <textarea
-      placeholder={config.placeholder}
-      rows={3}
-      className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition resize-none bg-white text-gray-900 placeholder:text-gray-400"
-    />
-  </div>
-);
+const DynamicTextarea: React.FC<{ config: ComponentConfig }> = ({ config }) => {
+  const ctx = useContext(FormContext);
+  const bound = !!(ctx && config.field);
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{config.label}</label>
+      <textarea
+        placeholder={config.placeholder}
+        rows={3}
+        value={bound ? (ctx!.values[config.field!] ?? "") : undefined}
+        onChange={bound ? (e) => ctx!.onChange(config.field!, e.target.value) : undefined}
+        className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition resize-none bg-white text-gray-900 placeholder:text-gray-400"
+      />
+    </div>
+  );
+};
 
 // ─── Select ───────────────────────────────────────────────────────────────────
 const DynamicSelect: React.FC<{ config: ComponentConfig }> = ({ config }) => {
+  const ctx = useContext(FormContext);
+  const bound = !!(ctx && config.field);
   const options: string[] = Array.isArray(config.props?.options) ? config.props.options : [];
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{config.label}</label>
-      <select className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full bg-white text-gray-900 focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition">
+      <select
+        value={bound ? (ctx!.values[config.field!] ?? "") : undefined}
+        onChange={bound ? (e) => ctx!.onChange(config.field!, e.target.value) : undefined}
+        className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-full bg-white text-gray-900 focus:ring-2 focus:ring-violet/30 focus:border-violet outline-none transition"
+      >
         <option value="" className="text-gray-900 bg-white">Select an option...</option>
         {options.length === 0 && <option disabled className="text-gray-400 bg-white">No options configured</option>}
         {options.map((opt) => <option key={opt} value={opt} className="text-gray-900 bg-white">{opt}</option>)}
@@ -70,11 +143,18 @@ const DynamicSelect: React.FC<{ config: ComponentConfig }> = ({ config }) => {
 
 // ─── Checkbox ─────────────────────────────────────────────────────────────────
 const DynamicCheckbox: React.FC<{ config: ComponentConfig }> = ({ config }) => {
-  const [checked, setChecked] = useState(false);
+  const ctx = useContext(FormContext);
+  const bound = !!(ctx && config.field);
+  const [localChecked, setLocalChecked] = useState(false);
+  const checked = bound ? !!ctx!.values[config.field!] : localChecked;
+  const toggle = () => {
+    if (bound) ctx!.onChange(config.field!, !checked);
+    else setLocalChecked((c) => !c);
+  };
   return (
     <label className="flex items-center gap-2.5 my-1 text-sm text-gray-700 cursor-pointer select-none group">
       <div
-        onClick={() => setChecked(c => !c)}
+        onClick={toggle}
         className={`w-4 h-4 rounded border-2 flex items-center justify-center transition ${checked ? "bg-violet border-violet" : "border-gray-300 bg-white group-hover:border-violet/50"}`}
       >
         {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8"><path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -86,6 +166,7 @@ const DynamicCheckbox: React.FC<{ config: ComponentConfig }> = ({ config }) => {
 
 // ─── Button ───────────────────────────────────────────────────────────────────
 const DynamicButton: React.FC<{ config: ComponentConfig }> = ({ config }) => {
+  const ctx = useContext(FormContext);
   const variant = config.props?.variant ?? "primary";
   const base = "px-4 py-2 font-medium rounded-lg text-sm transition shadow-sm w-fit inline-flex items-center gap-2";
   const variants: Record<string, string> = {
@@ -94,10 +175,28 @@ const DynamicButton: React.FC<{ config: ComponentConfig }> = ({ config }) => {
     danger: `${base} bg-red-500 hover:bg-red-600 text-white`,
     ghost: `${base} border border-gray-200 hover:bg-gray-50 text-gray-700`,
   };
+  // A button becomes a real "submit" action when it sits in a section that
+  // AppRuntime has wrapped in a FormContext (i.e. the section has at least
+  // one field-mapped component and a real saved app to write to).
+  const canSubmit = !!(ctx && ctx.onSubmit);
+  const submitting = !!(canSubmit && ctx!.submitting);
+
   return (
-    <button className={variants[variant] || variants.primary}>
-      {config.label}
-    </button>
+    <div className="flex flex-col items-start gap-1.5">
+      <button
+        type="button"
+        disabled={submitting}
+        onClick={canSubmit ? () => ctx!.onSubmit!() : undefined}
+        className={`${variants[variant] || variants.primary} ${submitting ? "opacity-60 cursor-wait" : ""}`}
+      >
+        {submitting ? "Saving..." : config.label}
+      </button>
+      {canSubmit && ctx!.message && (
+        <span className={`text-xs font-medium ${ctx!.message.type === "success" ? "text-green-600" : "text-red-500"}`}>
+          {ctx!.message.text}
+        </span>
+      )}
+    </div>
   );
 };
 
@@ -132,17 +231,26 @@ const DynamicBadge: React.FC<{ config: ComponentConfig }> = ({ config }) => {
 };
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-const DynamicStatCard: React.FC<{ config: ComponentConfig }> = ({ config }) => (
-  <div className="p-5 border border-gray-200 rounded-xl bg-white shadow-card">
-    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{config.label}</p>
-    <p className="text-3xl font-bold mt-1" style={{color:"#111827"}}>{config.props?.value ?? "—"}</p>
-    {config.props?.change !== undefined && (
-      <p className={`text-xs mt-1.5 font-medium ${Number(config.props.change) >= 0 ? "text-green-600" : "text-red-500"}`}>
-        {Number(config.props.change) >= 0 ? "↑" : "↓"} {Math.abs(Number(config.props.change))}%
-      </p>
-    )}
-  </div>
-);
+const DynamicStatCard: React.FC<{ config: ComponentConfig }> = ({ config }) => {
+  const recordsCtx = useContext(RecordsContext);
+  const computed: ComputedStatSpec | undefined = config.props?.computed;
+  const hasLiveValue = !!(computed && recordsCtx && !recordsCtx.loading);
+  const displayValue = hasLiveValue
+    ? recordsCtx!.records.filter((r) => matchesComputed(r, computed!)).length
+    : (config.props?.value ?? "—");
+
+  return (
+    <div className="p-5 border border-gray-200 rounded-xl bg-white shadow-card">
+      <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{config.label}</p>
+      <p className="text-3xl font-bold mt-1" style={{color:"#111827"}}>{displayValue}</p>
+      {config.props?.change !== undefined && (
+        <p className={`text-xs mt-1.5 font-medium ${Number(config.props.change) >= 0 ? "text-green-600" : "text-red-500"}`}>
+          {Number(config.props.change) >= 0 ? "↑" : "↓"} {Math.abs(Number(config.props.change))}%
+        </p>
+      )}
+    </div>
+  );
+};
 
 // ─── Divider ──────────────────────────────────────────────────────────────────
 const DynamicDivider: React.FC<{ config: ComponentConfig }> = ({ config }) => (
@@ -192,12 +300,19 @@ const DynamicProgress: React.FC<{ config: ComponentConfig }> = ({ config }) => {
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
 const DynamicToggle: React.FC<{ config: ComponentConfig }> = ({ config }) => {
-  const [on, setOn] = useState(false);
+  const ctx = useContext(FormContext);
+  const bound = !!(ctx && config.field);
+  const [localOn, setLocalOn] = useState(false);
+  const on = bound ? !!ctx!.values[config.field!] : localOn;
+  const toggle = () => {
+    if (bound) ctx!.onChange(config.field!, !on);
+    else setLocalOn((o) => !o);
+  };
   return (
     <label className="flex items-center justify-between w-full cursor-pointer my-1">
       <span className="text-sm text-gray-700">{config.label}</span>
       <button
-        onClick={() => setOn(o => !o)}
+        onClick={toggle}
         className={`relative w-10 h-5 rounded-full transition-colors ${on ? "bg-violet" : "bg-gray-200"}`}
       >
         <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${on ? "left-5" : "left-0.5"}`} />

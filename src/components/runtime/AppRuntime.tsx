@@ -1,14 +1,111 @@
 "use client";
-import React, { useState } from "react";
-import { AppConfigSchema } from "@/types/schema";
-import { RegistryRenderer, SUPPORTED_TYPES } from "./ComponentRegistry";
+import React, { useState, useEffect, useCallback } from "react";
+import { AppConfigSchema, DataField } from "@/types/schema";
+import { RegistryRenderer, SUPPORTED_TYPES, FormContext, RecordsContext } from "./ComponentRegistry";
 import { RuntimeErrorBoundary } from "./ErrorBoundary";
 import { DataTable } from "./DataTable";
 
 type Tab = "preview" | "data" | "schema" | "workflows";
 
+function buildInitialFormState(fields: DataField[]): Record<string, any> {
+  const state: Record<string, any> = {};
+  for (const f of fields) if (f.default !== undefined) state[f.name] = f.default;
+  return state;
+}
+
+// The records API returns zod's `.format()` shape on validation failure —
+// e.g. { details: { title: { _errors: ["title is required"] } } }. Pull out
+// the first field-level message so the inline error is actually actionable
+// instead of just the generic "Record failed dynamic schema validation".
+function extractFieldError(json: any): string | null {
+  const details = json?.details;
+  if (!details || typeof details !== "object") return null;
+  for (const [key, val] of Object.entries(details)) {
+    if (key === "_errors") continue;
+    const errors = (val as any)?._errors;
+    if (Array.isArray(errors) && errors.length > 0) return `${key}: ${errors[0]}`;
+  }
+  return null;
+}
+
+/**
+ * Wraps a preview section that contains field-mapped components (INPUT,
+ * SELECT, DATE, etc. with a `field` set) in a live FormContext, so that
+ * those components become real controlled inputs and a BUTTON in the same
+ * section submits the collected values as a new record via
+ * POST /api/apps/{appId}/records — the same endpoint the Live Data tab uses.
+ * This is what makes "Create Task" in UI Preview actually create a task.
+ */
+const FormSectionProvider: React.FC<{
+  appId: string;
+  fields: DataField[];
+  onCreated?: () => void;
+  children: React.ReactNode;
+}> = ({ appId, fields, onCreated, children }) => {
+  const [values, setValues] = useState<Record<string, any>>(() => buildInitialFormState(fields));
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const onChange = (field: string, value: any) => {
+    setValues((v) => ({ ...v, [field]: value }));
+    setMessage(null);
+  };
+
+  const onSubmit = async () => {
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/apps/${appId}/records`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setValues(buildInitialFormState(fields));
+        setMessage({ type: "success", text: "✓ Created — check Live Data" });
+        onCreated?.();
+      } else {
+        setMessage({ type: "error", text: extractFieldError(json) || json.error || "Failed to create record" });
+      }
+    } catch (e: any) {
+      setMessage({ type: "error", text: e?.message || "Network error — check your connection" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <FormContext.Provider value={{ values, onChange, onSubmit, submitting, message }}>
+      {children}
+    </FormContext.Provider>
+  );
+};
+
 export const AppRuntime: React.FC<{ rawConfig: any; appId?: string }> = ({ rawConfig, appId }) => {
   const [activeTab, setActiveTab] = useState<Tab>("preview");
+
+  // Powers any STAT/STAT_CARD with a `props.computed` spec — fetched once up
+  // front (and again right after a record is created) so the Overview-style
+  // numbers reflect real data instead of the static value baked into the
+  // config. No-op when there's no appId (unsaved app being edited).
+  const [records, setRecords] = useState<any[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(!!appId);
+
+  const loadRecords = useCallback(async () => {
+    if (!appId) { setRecordsLoading(false); return; }
+    try {
+      const res = await fetch(`/api/apps/${appId}/records`);
+      const json = await res.json();
+      if (res.ok) setRecords(json.records || []);
+    } catch {
+      // best-effort — stat cards just keep their last known value
+    } finally {
+      setRecordsLoading(false);
+    }
+  }, [appId]);
+
+  useEffect(() => { loadRecords(); }, [loadRecords]);
 
   const parsed = AppConfigSchema.safeParse(rawConfig);
 
@@ -35,6 +132,7 @@ export const AppRuntime: React.FC<{ rawConfig: any; appId?: string }> = ({ rawCo
   ];
 
   return (
+    <RecordsContext.Provider value={{ records, loading: recordsLoading }}>
     <div className="w-full bg-white border border-gray-200 rounded-2xl shadow-card overflow-hidden">
       {/* App header */}
       <div className="bg-gray-900 text-white px-5 py-3.5 flex items-center justify-between">
@@ -84,44 +182,69 @@ export const AppRuntime: React.FC<{ rawConfig: any; appId?: string }> = ({ rawCo
             </div>
           ) : (
             <>
-              {/* Preview-only notice */}
+              {/* Preview notice */}
               <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 text-xs">
                 <svg className="w-3.5 h-3.5 shrink-0 text-blue-400" fill="none" viewBox="0 0 16 16">
                   <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
                   <path d="M8 7v4M8 5.5v.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                 </svg>
                 <span>
-                  <strong className="font-semibold">UI Preview only</strong> — buttons and inputs here are visual demos.
-                  Switch to <button onClick={() => {}} className="underline font-semibold text-blue-700">Live Data</button> tab to create, edit and delete real records.
+                  {appId ? (
+                    <>
+                      <strong className="font-semibold">Live in Preview</strong> — fields linked to a data field create
+                      real records here. Other buttons/inputs are still visual demos.
+                      Check <button onClick={() => setActiveTab("data")} className="underline font-semibold text-blue-700">Live Data</button> after creating one.
+                    </>
+                  ) : (
+                    <>
+                      <strong className="font-semibold">Live in Preview</strong> — fields linked to a data field create
+                      real records here. Other buttons/inputs are still visual demos.
+                    </>
+                  )}
                 </span>
               </div>
-            {appData.sections.map((section) => (
-              <div key={section.id} className="bg-white border border-gray-100 rounded-xl p-5 shadow-card">
-                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
-                  {section.title}
-                </h3>
-                <div className={`
-                  ${section.layout === "GRID" ? "grid grid-cols-1 md:grid-cols-3 gap-4" : ""}
-                  ${section.layout === "STACK" ? "flex flex-col gap-3" : ""}
-                  ${section.layout === "RESPONSIVE" ? "flex flex-col md:flex-row gap-4 items-end" : ""}
-                `}>
-                  {section.components?.map((comp: any, i: number) => (
-                    <RuntimeErrorBoundary key={comp?.id || `fallback-${i}`}>
-                      <RegistryRenderer
-                        component={{
-                          id: comp?.id || `c-${i}`,
-                          type: comp?.type || "UNKNOWN",
-                          label: comp?.label,
-                          placeholder: comp?.placeholder,
-                          field: comp?.field,
-                          props: comp?.props,
-                        }}
-                      />
-                    </RuntimeErrorBoundary>
-                  ))}
+            {appData.sections.map((section) => {
+              const fieldNames = (section.components ?? [])
+                .map((c: any) => c?.field)
+                .filter((f: any): f is string => typeof f === "string" && f.length > 0);
+              const sectionFields = appData.dataSchema.filter((f) => fieldNames.includes(f.name));
+
+              const body = (
+                <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card">
+                  <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
+                    {section.title}
+                  </h3>
+                  <div className={`
+                    ${section.layout === "GRID" ? "grid grid-cols-1 md:grid-cols-3 gap-4" : ""}
+                    ${section.layout === "STACK" ? "flex flex-col gap-3" : ""}
+                    ${section.layout === "RESPONSIVE" ? "flex flex-col md:flex-row gap-4 items-end" : ""}
+                  `}>
+                    {section.components?.map((comp: any, i: number) => (
+                      <RuntimeErrorBoundary key={comp?.id || `fallback-${i}`}>
+                        <RegistryRenderer
+                          component={{
+                            id: comp?.id || `c-${i}`,
+                            type: comp?.type || "UNKNOWN",
+                            label: comp?.label,
+                            placeholder: comp?.placeholder,
+                            field: comp?.field,
+                            props: comp?.props,
+                          }}
+                        />
+                      </RuntimeErrorBoundary>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+
+              return appId && sectionFields.length > 0 ? (
+                <FormSectionProvider key={section.id} appId={appId} fields={sectionFields} onCreated={loadRecords}>
+                  {body}
+                </FormSectionProvider>
+              ) : (
+                <div key={section.id}>{body}</div>
+              );
+            })}
             </>
           )
         )}
@@ -230,5 +353,6 @@ export const AppRuntime: React.FC<{ rawConfig: any; appId?: string }> = ({ rawCo
         )}
       </div>
     </div>
+    </RecordsContext.Provider>
   );
 };

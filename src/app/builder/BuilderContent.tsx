@@ -14,11 +14,45 @@ const MOCK_CONFIG = {
       "title": "Create New Task",
       "layout": "RESPONSIVE",
       "components": [
-        { "id": "inp-title", "type": "INPUT", "label": "Task Title", "placeholder": "e.g. Fix login bug", "field": "title" },
-        { "id": "sel-status", "type": "SELECT", "label": "Status", "field": "status", "props": { "options": ["OPEN", "IN_PROGRESS", "DONE"] } },
-        { "id": "sel-priority", "type": "SELECT", "label": "Priority", "field": "priority", "props": { "options": ["LOW", "MEDIUM", "HIGH"] } },
-        { "id": "date-due", "type": "INPUT_DATE", "label": "Due Date", "field": "due_date" },
-        { "id": "btn-create", "type": "BUTTON", "label": "Create Task", "props": { "variant": "primary" } }
+        {
+          "id": "inp-title",
+          "type": "INPUT",
+          "field": "title",
+          "label": "Task Title",
+          "placeholder": "e.g. Fix login bug"
+        },
+        {
+          "id": "sel-status",
+          "type": "SELECT",
+          "field": "status",
+          "label": "Status",
+          "props": {
+            "options": ["OPEN", "IN_PROGRESS", "DONE"]
+          }
+        },
+        {
+          "id": "sel-priority",
+          "type": "SELECT",
+          "field": "priority",
+          "label": "Priority",
+          "props": {
+            "options": ["LOW", "MEDIUM", "HIGH"]
+          }
+        },
+        {
+          "id": "date-due",
+          "type": "INPUT_DATE",
+          "field": "due_date",
+          "label": "Due Date"
+        },
+        {
+          "id": "btn-create",
+          "type": "BUTTON",
+          "label": "Create Task",
+          "props": {
+            "variant": "primary"
+          }
+        }
       ]
     },
     {
@@ -26,32 +60,87 @@ const MOCK_CONFIG = {
       "title": "Overview",
       "layout": "GRID",
       "components": [
-        { "id": "stat-total", "type": "STAT", "label": "Total Tasks", "props": { "value": "0" } },
-        { "id": "stat-done", "type": "STAT", "label": "Completed", "props": { "value": "0" } },
-        { "id": "stat-open", "type": "STAT", "label": "Open", "props": { "value": "0" } }
+        {
+          "id": "stat-total",
+          "type": "STAT",
+          "label": "Total Tasks",
+          "props": {
+            "value": "0",
+            "computed": {}
+          }
+        },
+        {
+          "id": "stat-done",
+          "type": "STAT",
+          "label": "Completed",
+          "props": {
+            "value": "0",
+            "computed": { "field": "status", "equals": "DONE" }
+          }
+        },
+        {
+          "id": "stat-open",
+          "type": "STAT",
+          "label": "Open",
+          "props": {
+            "value": "0",
+            "computed": { "field": "status", "notEquals": "DONE" }
+          }
+        }
       ]
     }
-  ],
-  "dataSchema": [
-    { "name": "title", "type": "STRING", "required": true },
-    { "name": "status", "type": "SELECT", "options": ["OPEN", "IN_PROGRESS", "DONE"], "required": false, "default": "OPEN" },
-    { "name": "priority", "type": "SELECT", "options": ["LOW", "MEDIUM", "HIGH"], "required": false, "default": "MEDIUM" },
-    { "name": "due_date", "type": "DATE", "required": false }
   ],
   "workflows": [
     {
       "id": "wf-created",
-      "trigger": "ON_RECORD_CREATE",
-      "actions": [{ "type": "NOTIFY", "message": "New task created: {{title}} [{{status}}]" }]
+      "actions": [
+        {
+          "type": "NOTIFY",
+          "message": "New task created: {{title}} [{{status}}]"
+        }
+      ],
+      "trigger": "ON_RECORD_CREATE"
     },
     {
       "id": "wf-deleted",
-      "trigger": "ON_RECORD_DELETE",
-      "actions": [{ "type": "NOTIFY", "message": "Task deleted: {{title}}" }]
+      "actions": [
+        {
+          "type": "NOTIFY",
+          "message": "Task deleted: {{title}}"
+        }
+      ],
+      "trigger": "ON_RECORD_DELETE"
+    }
+  ],
+  "dataSchema": [
+    {
+      "name": "title",
+      "type": "STRING",
+      "options": [],
+      "required": true
+    },
+    {
+      "name": "status",
+      "type": "SELECT",
+      "default": "OPEN",
+      "options": ["OPEN", "IN_PROGRESS", "DONE"],
+      "required": false
+    },
+    {
+      "name": "priority",
+      "type": "SELECT",
+      "default": "MEDIUM",
+      "options": ["LOW", "MEDIUM", "HIGH"],
+      "required": false
+    },
+    {
+      "name": "due_date",
+      "type": "DATE",
+      "options": [],
+      "required": false
     }
   ]
 };
-
 export default function BuilderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
