@@ -14,7 +14,7 @@ const config: Config = {
       // amber=pending) instead of a single generic accent color.
       colors: {
         ink: {
-          DEFAULT: "#181717",
+          DEFAULT: "#f0e9e9",
           soft: "#111110",
         },
         paper: "#15140F",
